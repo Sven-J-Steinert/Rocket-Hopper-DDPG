@@ -38,8 +38,12 @@ class HopperEnv(Env):
         # Calculate reward
         reward = 0
         error = abs(self.state[0] - self.x_target)
-        if error < 0.1: 
-            reward += 1 
+        threshold = 2.5
+        if error < threshold: 
+            if error == 0:
+                reward += 1000
+            else:
+                reward += min(1000,threshold/error)
         else: 
             reward += -1 
         
