@@ -206,5 +206,3 @@ def F_Thrust_NASA(p_valve):
     F_T = md * v_ex + (p_2 - p_infinity) * A_ex
 
     return F_T
-
-F_Thrust_NASA(7)
