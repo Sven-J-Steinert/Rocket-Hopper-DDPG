@@ -17,7 +17,7 @@ class HopperEnv(Env):
         # Altitude range
         self.observation_space = Box(low=np.array([0]), high=np.array([5]))
         # Set start altitude and velocity
-        self.state = np.array([0,0])
+        self.state = np.array([[0],[0]])
         # Set simulation time
         self.sim_time = 40 # [s]
         self.p_set_old = 0 # [bar]
@@ -29,7 +29,7 @@ class HopperEnv(Env):
         # action is the pressure
         p_set = action
         p_actual = dynamic_restriction(p_set,self.p_set_old)
-        self.state = sim_step(y,p_actual)
+        self.state = sim_step(self.state,p_actual)
         self.p_set_old = p_set
         
         # Reduce sim_time by a step
