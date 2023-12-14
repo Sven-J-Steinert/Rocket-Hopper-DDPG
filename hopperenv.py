@@ -28,7 +28,8 @@ class HopperEnv(Env):
 
         # action is the pressure
         p_set = action
-        p_actual = dynamic_restriction(p_set,self.p_set_old)
+        #p_actual = dynamic_restriction(p_set,self.p_set_old)
+        p_actual = p_set
         self.state = sim_step(self.state,p_actual)
         self.p_set_old = p_set
         
@@ -38,7 +39,7 @@ class HopperEnv(Env):
         # Calculate reward
         reward = 0
         error = abs(self.state[0] - self.x_target)
-        threshold = 1.0
+        threshold = 2.0
         if error < threshold: 
             if error == 0:
                 reward += 1000
