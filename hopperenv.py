@@ -39,12 +39,13 @@ class HopperEnv(Env):
         # Calculate reward
         reward = 0
         error = abs(self.state[0] - self.x_target)
-        threshold = 2.0
+        threshold = 1.0
+        scale = 0.01
         if error < threshold: 
             if error == 0:
-                reward += 1000
+                reward += 10
             else:
-                reward += min(1000,threshold/error)
+                reward += min(10, scale * (threshold/error))
         else: 
             reward += -1 
         
@@ -75,7 +76,8 @@ class HopperEnv(Env):
     
     
     
-def sim_step(y,p=None):
+def sim_step(y,p):
+    p = np.squeeze(p) # make sure its one dimensional
     h = 1/600              # stepsize in seconds
     t0 = 0                  # initial time in seconds
     tn = 1/60               # final time in seconds
@@ -84,6 +86,7 @@ def sim_step(y,p=None):
 
     # update Thrust
     global F_T
+
     F_T = F_Thrust_fast(p)
     
     for t in time:
@@ -173,7 +176,7 @@ def dynamic_restriction(p_set,p_set_old):
     return p_set
 
 def F_Thrust_fast(p_valve):
-    coefficients = [10.60078931 -9.50331778]
+    coefficients = np.array([10.600789308865751,-9.503317777109121])
     linear_fit = np.poly1d(coefficients)
     return max(0,linear_fit(p_valve))
 
