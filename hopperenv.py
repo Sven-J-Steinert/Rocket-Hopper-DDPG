@@ -13,15 +13,15 @@ g0 = 9.80665
 class HopperEnv(Env):
     def __init__(self):
         # Actions we can take: set pressure between 0 and 7 bar
-        self.action_space = Box(low=0.0, high=7.0, shape=(1, 1), dtype=np.float32)
+        self.action_space = Box(low=0.0, high=7.0, shape=(1,), dtype=np.float32)
         # Altitude range
-        self.observation_space = Box(low=np.array([0]), high=np.array([5]))
+        self.observation_space = Box(low=np.array([0., -100.]), high=np.array([5., 100.]), shape=(2,))
         # Set start altitude and velocity
-        self.state = np.array([[0],[0]])
+        self.state = np.array([0.,0.] , dtype=np.float32)
         # Set simulation time
         self.sim_time = 40 # [s]
         self.p_set_old = 0 # [bar]
-        self.x_target = 2 # [m]
+        self.x_target = 2. # [m]
         
     def step(self, action):
         # Apply action
@@ -38,7 +38,7 @@ class HopperEnv(Env):
         # Calculate reward
         reward = 0
         error = abs(self.state[0] - self.x_target)
-        threshold = 2.5
+        threshold = 1.0
         if error < threshold: 
             if error == 0:
                 reward += 1000
@@ -83,7 +83,7 @@ def sim_step(y,p=None):
 
     # update Thrust
     global F_T
-    F_T = F_Thrust_NASA(p)
+    F_T = F_Thrust_fast(p)
     
     for t in time:
         y = rk4_e(ode, y, h, t)
@@ -171,12 +171,15 @@ def dynamic_restriction(p_set,p_set_old):
 
     return p_set
 
-
+def F_Thrust_fast(p_valve):
+    coefficients = [10.60078931 -9.50331778]
+    linear_fit = np.poly1d(coefficients)
+    return max(0,linear_fit(p_valve))
 
 def F_Thrust_NASA(p_valve):
     R = 296.8 # Gas constant of Nitrogen
     gamma = 1.4
-    D_th = 0.009 # nozzle throat diameter m
+    D_th = 0.010 # nozzle throat diameter m
     D_ex = 0.011 # nozzle exit diameter mm
     A_th = (np.pi/4) * D_th**2 # [m²]
     A_ex = (np.pi/4) * D_ex**2 # [m²]
