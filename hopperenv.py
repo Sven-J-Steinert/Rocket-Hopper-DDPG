@@ -10,32 +10,47 @@ F_RR = 10 # N
 k  = 6 # N /m
 g0 = 9.80665
 
+F_T = 0 # define global var
+
 class HopperEnv(Env):
     def __init__(self):
         # Actions we can take: set pressure between 0 and 7 bar
-        self.action_space = Box(low=0.0, high=7.0, shape=(1,), dtype=np.float32)
+        self.action_space = Box(low=0.0, high=7.0, shape=(1,), dtype=np.float32) # pressure
         # Altitude range
-        self.observation_space = Box(low=np.array([0.,0., -100.]), high=np.array([5.,5., 100.]), shape=(3,)) # [x_target,x,a]
+        self.observation_space = Box(low=np.array([0.,5., -100.]), high=np.array([0.,5., 100.]), shape=(3,)) # [x_target,x,a]
         # Set simulation time
-        self.sim_time = 40 # [s]
+        self.sim_time = 16 # [s]
         self.p_set_old = 0 # [bar]
-        self.x_target = 2. # [m]
+        self.v_old = 0
+        self.check = False
+
+        # test trajectory: select 3 random hover points and landing in the end
+        self.x_target = random.uniform(0, 3)
+
+        
         # Set start altitude and velocity
         self.y = np.array([0.,0.] , dtype=np.float32)
         self.state = np.array([self.x_target,0.,0.] , dtype=np.float32)
         self.error_old = self.x_target - self.y[0]
+
         
     def step(self, action):
+        
+
+        #print('time',self.sim_time,'x_target',self.x_target)
+        #print('x_target',self.x_target)
+        
+        
         # Apply action
 
         # action is the pressure
         p_set = action
         p_actual = dynamic_restriction(p_set,self.p_set_old)
 
-        y = sim_step(self.y,p_actual)
-        self.y = y
+        y = self.sim_step(self.y,p_actual)
+        self.y = y[:-1]
 
-        self.state = np.array([self.x_target,y[0],y[1]])
+        self.state = np.array([self.x_target,y[0],y[2]]) # craft [x,a]
         
         
         # Reduce sim_time by a step
@@ -44,23 +59,17 @@ class HopperEnv(Env):
         # Calculate reward
         reward = 0
         error = abs(y[0] - self.x_target)
-        threshold = 1.0
-        scale = 1
+        threshold_error = 0.2
+        threshold_vel = 0.1
+        scale = 0.1
 
-        
-        
+        # if he lifted off he is elidgable for getting landing reward
+        if self.state[1] > 0.5:
+            self.check = True
+
         # reward small error
-        if error < threshold: 
-            if error == 0:
-                reward += 10
-            else:
-                reward += min(10, scale * (threshold/error))
-        else: 
-            reward += -1
-            # reward error reduction towards threshold
-            if (error-self.error_old) < -0.01:
-                reward += 1
-            
+        reward = 1/(1*np.sqrt(2*np.pi))* np.exp(-0.5*((self.state[1]-self.x_target)/(1))**2)
+        
         # penalize fast change in p_set
         #if abs(self.p_set_old - p_set) > 0.5:
         #    reward += -10 
@@ -78,7 +87,7 @@ class HopperEnv(Env):
         # Apply temperature noise
         #self.state += random.randint(-1,1)
         # Set placeholder for info
-        info = p_actual
+        info = [p_actual,self.y[1]]
         
         # Return step information
         return self.state, reward, done, info
@@ -92,29 +101,36 @@ class HopperEnv(Env):
         self.state = np.array([self.x_target,0,0])
         self.y = np.array([0,0])
         self.p_set_old = 0
+        self.v_old = 0
         self.error_old = self.x_target - self.y[0]
-        self.sim_time = 40 # [s]
+        self.x_target = random.uniform(0, 3)
+        self.sim_time = 16 # [s]
+        self.check = False
         return self.state
     
-    
-    
-def sim_step(y,p):
-    p = np.squeeze(p) # make sure its one dimensional
-    h = 1/600              # stepsize in seconds
-    t0 = 0                  # initial time in seconds
-    tn = 1/60               # final time in seconds
-    
-    time = np.linspace(t0, tn, int((tn-t0)/h)+1)
-
-    # update Thrust
-    global F_T
-
-    F_T = F_Thrust_fast(p)
-    
-    for t in time:
-        y = rk4_e(ode, y, h, t)
+    def sim_step(self,y,p):
+        p = np.squeeze(p) # make sure its one dimensional
+        h = 1/600              # stepsize in seconds
+        t0 = 0                  # initial time in seconds
+        tn = 1/60               # final time in seconds
         
-    return y
+        time = np.linspace(t0, tn, int((tn-t0)/h)+1)
+    
+        # update Thrust
+        global F_T
+    
+        F_T = F_Thrust_fast(p)
+        
+        for t in time:
+            y = rk4_e(ode, y, h, t)
+            
+        x = y[0]
+        v = y[1]
+        a = v-self.v_old
+    
+        self.v_old = v
+            
+        return np.array([x,v,a])
 
 # resistance modelling - smoothed to stablize model
 def F_R(v):
