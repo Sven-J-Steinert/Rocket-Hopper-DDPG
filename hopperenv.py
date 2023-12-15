@@ -58,7 +58,7 @@ class HopperEnv(Env):
         else: 
             reward += -1
             # reward error reduction towards threshold
-            if (error-self.error_old) < -0.05:
+            if (error-self.error_old) < -0.01:
                 reward += 1
             
         # penalize fast change in p_set
@@ -66,7 +66,7 @@ class HopperEnv(Env):
         #    reward += -10 
 
         # update for next loop
-        self.p_set_old = p_set
+        self.p_set_old = p_actual
         self.error_old = error
         
         # Check if shower is done
@@ -78,7 +78,7 @@ class HopperEnv(Env):
         # Apply temperature noise
         #self.state += random.randint(-1,1)
         # Set placeholder for info
-        info = {}
+        info = p_actual
         
         # Return step information
         return self.state, reward, done, info
@@ -163,6 +163,10 @@ def rk4_e(f, y, h, t):
 
 
 def dynamic_restriction(p_set,p_set_old):
+    # make both inputs scalar
+    p_set = np.squeeze(p_set)
+    p_set_old = np.squeeze(p_set_old)
+    
     # main valve opening / closing restriction
     # 0 % = 0 bar to 100% = 10 bar
     
