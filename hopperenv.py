@@ -15,39 +15,59 @@ class HopperEnv(Env):
         # Actions we can take: set pressure between 0 and 7 bar
         self.action_space = Box(low=0.0, high=7.0, shape=(1,), dtype=np.float32)
         # Altitude range
-        self.observation_space = Box(low=np.array([0., -100.]), high=np.array([5., 100.]), shape=(2,))
-        # Set start altitude and velocity
-        self.state = np.array([0.,0.] , dtype=np.float32)
+        self.observation_space = Box(low=np.array([0.,0., -100.]), high=np.array([5.,5., 100.]), shape=(3,)) # [x_target,x,a]
         # Set simulation time
         self.sim_time = 40 # [s]
         self.p_set_old = 0 # [bar]
         self.x_target = 2. # [m]
+        # Set start altitude and velocity
+        self.y = np.array([0.,0.] , dtype=np.float32)
+        self.state = np.array([self.x_target,0.,0.] , dtype=np.float32)
+        self.error_old = self.x_target - self.y[0]
         
     def step(self, action):
         # Apply action
 
         # action is the pressure
         p_set = action
-        #p_actual = dynamic_restriction(p_set,self.p_set_old)
-        p_actual = p_set
-        self.state = sim_step(self.state,p_actual)
-        self.p_set_old = p_set
+        p_actual = dynamic_restriction(p_set,self.p_set_old)
+
+        y = sim_step(self.y,p_actual)
+        self.y = y
+
+        self.state = np.array([self.x_target,y[0],y[1]])
+        
         
         # Reduce sim_time by a step
         self.sim_time -= 1/60
         
         # Calculate reward
         reward = 0
-        error = abs(self.state[0] - self.x_target)
+        error = abs(y[0] - self.x_target)
         threshold = 1.0
-        scale = 0.01
+        scale = 1
+
+        
+        
+        # reward small error
         if error < threshold: 
             if error == 0:
                 reward += 10
             else:
                 reward += min(10, scale * (threshold/error))
         else: 
-            reward += -1 
+            reward += -1
+            # reward error reduction towards threshold
+            if (error-self.error_old) < -0.05:
+                reward += 1
+            
+        # penalize fast change in p_set
+        #if abs(self.p_set_old - p_set) > 0.5:
+        #    reward += -10 
+
+        # update for next loop
+        self.p_set_old = p_set
+        self.error_old = error
         
         # Check if shower is done
         if self.sim_time <= 0: 
@@ -68,9 +88,11 @@ class HopperEnv(Env):
         pass
     
     def reset(self):
-        # Reset shower temperature
-        self.state = np.array([0,0])
-        # Reset shower time
+        # Reset all variables
+        self.state = np.array([self.x_target,0,0])
+        self.y = np.array([0,0])
+        self.p_set_old = 0
+        self.error_old = self.x_target - self.y[0]
         self.sim_time = 40 # [s]
         return self.state
     
