@@ -12,6 +12,11 @@ g0 = 9.80665
 
 F_T = 0 # define global var
 
+def F_Thrust_fast(p_valve):
+    coefficients = np.array([10.600789308865751,-9.503317777109121])
+    linear_fit = np.poly1d(coefficients)
+    return max(0,linear_fit(p_valve))
+
 class HopperEnv(Env):
     def __init__(self):
         # Actions we can take: set pressure between 0 and 7 bar
@@ -25,7 +30,7 @@ class HopperEnv(Env):
         self.check = False
 
         # test trajectory: select 3 random hover points and landing in the end
-        self.x_target = random.uniform(0, 3)
+        self.x_target = random.uniform(1, 3)
 
         
         # Set start altitude and velocity
@@ -36,7 +41,6 @@ class HopperEnv(Env):
         
     def step(self, action):
         
-
         #print('time',self.sim_time,'x_target',self.x_target)
         #print('x_target',self.x_target)
         
@@ -50,25 +54,14 @@ class HopperEnv(Env):
         y = self.sim_step(self.y,p_actual)
         self.y = y[:-1]
 
-        self.state = np.array([self.x_target,y[0],y[2]]) # craft [x,a]
-        
+        self.state = np.array([self.x_target,y[0],y[2]]) # craft [x_target,x,a]
         
         # Reduce sim_time by a step
         self.sim_time -= 1/60
-        
-        # Calculate reward
-        reward = 0
-        error = abs(y[0] - self.x_target)
-        threshold_error = 0.2
-        threshold_vel = 0.1
-        scale = 0.1
 
-        # if he lifted off he is elidgable for getting landing reward
-        if self.state[1] > 0.5:
-            self.check = True
-
-        # reward small error
-        reward = 1/(1*np.sqrt(2*np.pi))* np.exp(-0.5*((self.state[1]-self.x_target)/(1))**2)
+        # reward small error in gauss dist
+        sigma = 0.5 # variance - gauss parameter
+        reward = 1/(sigma*np.sqrt(2*np.pi))* np.exp(-0.5*((self.state[1]-self.x_target)/(sigma))**2)
         
         # penalize fast change in p_set
         #if abs(self.p_set_old - p_set) > 0.5:
@@ -76,7 +69,6 @@ class HopperEnv(Env):
 
         # update for next loop
         self.p_set_old = p_actual
-        self.error_old = error
         
         # Check if shower is done
         if self.sim_time <= 0: 
@@ -92,6 +84,7 @@ class HopperEnv(Env):
         # Return step information
         return self.state, reward, done, info
 
+
     def render(self):
         # Implement viz
         pass
@@ -103,7 +96,7 @@ class HopperEnv(Env):
         self.p_set_old = 0
         self.v_old = 0
         self.error_old = self.x_target - self.y[0]
-        self.x_target = random.uniform(0, 3)
+        self.x_target = random.uniform(1, 3)
         self.sim_time = 16 # [s]
         self.check = False
         return self.state
@@ -216,42 +209,3 @@ def dynamic_restriction(p_set,p_set_old):
             p_set = dp_dt_closing * sim_step + p_set_old
 
     return p_set
-
-def F_Thrust_fast(p_valve):
-    coefficients = np.array([10.600789308865751,-9.503317777109121])
-    linear_fit = np.poly1d(coefficients)
-    return max(0,linear_fit(p_valve))
-
-def F_Thrust_NASA(p_valve):
-    R = 296.8 # Gas constant of Nitrogen
-    gamma = 1.4
-    D_th = 0.010 # nozzle throat diameter m
-    D_ex = 0.011 # nozzle exit diameter mm
-    A_th = (np.pi/4) * D_th**2 # [m²]
-    A_ex = (np.pi/4) * D_ex**2 # [m²]
-    
-    H = 263289.1858405551 # H = CP.PropsSI('H','P',300 * 1e5,'T',293, "Nitrogen")
-
-    # values over the mach shock
-    p_1 = p_valve * 1e5 # [Pa]
-    T_1 = CP.PropsSI('T','P',p_1,'H',H, "Nitrogen") # [K]
-
-    md =  (A_th * p_1/np.sqrt(T_1)) * np.sqrt(gamma/R) * ((gamma + 1)/2)**-((gamma + 1)/(gamma - 1)/2) 
-
-    # converge Mach_exit
-    M_ex = 2 # Initial value for the exit Mach number
-    error = np.inf
-    Aex_Ath_target = A_ex / A_th
-
-    M_ex = 1.54787
-    
-    T_2 = T_1 * ((1+ ((gamma-1)/2)*M_ex**2)**(-1))
-    p_2 = p_1 * ((1+ ((gamma-1)/2)*M_ex**2)**(-((gamma)/(gamma-1))))
-
-    v_ex = M_ex * np.sqrt(gamma*R*T_2)
-
-    p_infinity = 1 * 1e5 # [Pa]
-
-    F_T = md * v_ex + (p_2 - p_infinity) * A_ex
-
-    return F_T
