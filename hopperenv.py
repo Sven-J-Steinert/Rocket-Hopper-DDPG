@@ -243,7 +243,7 @@ def F_Thrust_NASA(p_valve):
     error = np.inf
     Aex_Ath_target = A_ex / A_th
 
-    M_ex = 1.84790
+    M_ex = 1.54787
     
     T_2 = T_1 * ((1+ ((gamma-1)/2)*M_ex**2)**(-1))
     p_2 = p_1 * ((1+ ((gamma-1)/2)*M_ex**2)**(-((gamma)/(gamma-1))))
