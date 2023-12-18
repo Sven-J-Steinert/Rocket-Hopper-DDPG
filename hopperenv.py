@@ -5,9 +5,6 @@ import random
 import CoolProp.CoolProp as CP
 
 # some global variables
-m = 3.5+1 # kg
-F_RR = 10 # N
-k  = 6 # N /m
 g0 = 9.80665
 
 F_T = 0 # define global var
@@ -26,7 +23,7 @@ class HopperEnv(Env):
         # Set simulation time
         self.sim_time = 5 # [s] total sim time
         self.tn = 1/60    # [s] step sim time
-        self.h = 1/600    # [s] stepsize ode
+        self.h = 1/120    # [s] stepsize ode
         
         self.p_actual = 0 # [bar]
         self.counter = 0 # for constant penalty
@@ -133,7 +130,7 @@ class HopperEnv(Env):
     
         F_T = F_Thrust_fast(p)
         
-        for t in time:
+        for t in time[1:]:
             y = rk4_e(ode, y, self.h, t)
             
         x = y[0]
@@ -147,6 +144,7 @@ class HopperEnv(Env):
 # resistance modelling - smoothed to stablize model
 def F_R(v):
     v_thr = 0.01
+    F_RR = 10 # N
     
     if abs(v) > v_thr:
         F_R = np.sign(v)*F_RR
@@ -170,6 +168,9 @@ def ode(t, y):
     
     x = y[0]
     v = y[1]
+
+    k  = 6 # N /m
+    m = 3.5+1 # kg
     
     a = (1/m)*(F_T - (m*g0) - (k *x) - (F_R(v)))
     # restrict movement to be not able to go below 0 in position
