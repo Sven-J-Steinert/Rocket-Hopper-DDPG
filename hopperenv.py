@@ -25,7 +25,7 @@ class HopperEnv(Env):
         self.observation_space = Box(low=np.array([0.,5., -10.]), high=np.array([0.,5., 10.]), shape=(3,)) # [x_target,x,a]
         # Set simulation time
         self.sim_time = 5 # [s] total sim time
-        self.tn = 1/60    # [s] step sim time
+        self.t_n = 1/60    # [s] step sim time
         self.h = 1/600    # [s] stepsize ode
         
         self.p_actual = 0 # [bar]
@@ -73,7 +73,7 @@ class HopperEnv(Env):
         self.state = np.array([self.x_target,y[0],y[2]]) # craft [x_target,x,a]
         
         # Reduce sim_time by a step
-        self.sim_time -= self.tn
+        self.sim_time -= self.t_n
 
         # reward small error in gauss dist
 
@@ -128,7 +128,7 @@ class HopperEnv(Env):
         
         t0 = 0                  # initial time in seconds
         
-        time = np.linspace(t0, self.tn, int((self.tn-t0)/self.h)+1)
+        time = np.linspace(t0, self.t_n, int((self.t_n-t0)/self.h)+1)
     
         # update Thrust
         global F_T
