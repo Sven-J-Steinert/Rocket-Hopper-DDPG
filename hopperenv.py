@@ -19,20 +19,21 @@ class HopperEnv(Env):
         # Actions we can take: set pressure between 0 and 7 bar
         self.action_space = Box(low=0.0, high=7.0, shape=(1,), dtype=np.float32) # pressure
         # Altitude range
-        self.observation_space = Box(low=np.array([0.,5., -10.]), high=np.array([0.,5., 10.]), shape=(3,)) # [x_target,x,a]
+        self.observation_space = Box(low=np.array([0.,5., -0.1]), high=np.array([0.,5., 0.1]), shape=(3,)) # [x_target,x,a]
         # Set simulation time
         self.sim_time = 5 # [s] total sim time
         self.tn = 1/60    # [s] step sim time
         self.h = 1/120    # [s] stepsize ode
         
         self.p_actual = 0 # [bar]
-        self.counter = 0 # for constant penalty
-        self.x_old = 0 # for constant penalty
+        #self.counter = 0 # for constant penalty
+        #self.x_old = 0 # for constant penalty
         self.v_old = 0
+        #self.action_old = 0
 
         # test trajectory: select 3 random hover points and landing in the end
         self.x_target = random.uniform(1, 3)
-        self.x_target = 2
+        #self.x_target = 2
 
         # Set start altitude and velocity
         self.y = np.array([0.,0.])
@@ -44,15 +45,18 @@ class HopperEnv(Env):
         self.state = np.array([self.x_target,0,0])
         self.y = np.array([0.,0.])
         self.p_actual = 0
-        self.v_old = 0
+        
         self.x_target = random.uniform(1, 3)
-        self.x_target = 2
+        #self.x_target = 2
         self.sim_time = 5 # [s]
+
+        self.v_old = 0
+        #self.action_old = 0
 
         return self.state
 
         
-    def step(self, action):
+    def step(self, action,raw=None):
         
         #print('time',self.sim_time,'x_target',self.x_target)
         #print('x_target',self.x_target)
@@ -77,8 +81,20 @@ class HopperEnv(Env):
         sigma = 0.5 # variance - gauss parameter
         reward = scale*(1/(sigma*np.sqrt(2*np.pi))* np.exp(-0.5*((error)/(sigma))**2)) # small error gauss
 
-        scale = 10
-        sigma = 0.5 # variance - gauss parameter
+        
+        #scale = 0.8
+        #sigma = 0.25 # variance - gauss parameter
+        #reward += scale*(1/(sigma*np.sqrt(2*np.pi))* np.exp(-0.5*((error)/(sigma))**2)) # reward small error greatly gauss
+
+        #penalize constant
+        #if raw is None:
+        #    raw = action
+        #if abs(self.action_old - raw) == 0:
+        #    reward -= 10
+        #self.action_old = raw
+        
+        #if error > 0:
+        #    reward = reward * 0.5
         
         #reward = reward * (1 + scale*(1/(sigma*np.sqrt(2*np.pi))* np.exp(-0.5*((y[2])/(sigma))**2))) # small velocity gauss
         
@@ -89,14 +105,14 @@ class HopperEnv(Env):
         #else:
         #    self.counter = 0
 
-        self.x_old = y[0]
+        
         
         # penalize fast change in p_set
         #if abs(self.p_set_old - p_set) > 0.5:
         #    reward += -10 
 
         # update for next loop
-
+        #self.x_old = y[0]
         
         # Check if shower is done
         if self.sim_time <= 0: 

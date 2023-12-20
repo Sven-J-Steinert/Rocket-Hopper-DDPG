@@ -65,6 +65,5 @@ def plot_doc(states,filename):
     plt.xlabel('Time [steps]')
     plt.legend(loc='lower right')
     plt.tight_layout()
-    plt.tight_layout()
     plt.savefig(filename, bbox_inches='tight')
     plt.show()
