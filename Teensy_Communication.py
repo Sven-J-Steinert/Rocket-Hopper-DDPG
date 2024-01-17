@@ -1,6 +1,7 @@
 # importing libraries
 import serial  # Library for serial communication with python - install command: pip install pyserial
 import time  # time tracking library
+import serial.tools.list_ports
 
 
 # teensy loop time
@@ -10,20 +11,19 @@ control_duration = 10 # in [s] --> your anticipated flight duration / control ev
 ### establishing serial connection
 # you need to figure out the serial port ID of your laptop; it might be different from the predefined
 
-hardware_id = '10C4:EA60' # lookup once for specific device
+hardware_id = '1A86:7523' # lookup once for specific device
 
 while True:
     connected = False
     while not connected:
         ports = serial.tools.list_ports.comports()
         for port, desc, hwid in sorted(ports):
-        print('DISCONNECTED',end='\r')
             if hardware_id in hwid:
                 dev_port = port
                 connected = True
         time.sleep(0.1)
     ser = serial.Serial(dev_port, baudrate=57600)
-    print('CONNECTED')
+    break
 
 # setup/start commands for the hopper
 # resetting error status
@@ -35,7 +35,7 @@ ser.write(b'1')
 # setting the reply mode --> sending the input back yes or no
 # r = reply 
 # n = no reply
-ser.write(b'n') # donÄt change this
+ser.write(b'n') # don't change this
 
 # setting the failure mode
 # F = no failure
@@ -51,9 +51,9 @@ while True:
     loop_timer = time.time()                        # loop timer --> the time it takes for one control loop is either equivalnt to the loop_cycle_time or slower
     
     # signal coming from teensy
-    raw_data = serial.readline().decode().strip()   # reading the data comming from the teensy, decoding the data and removing white spaces
+    raw_data = ser.readline().decode().strip()   # reading the data comming from the teensy, decoding the data and removing white spaces
     raw_data = raw_data.split(':')                  # spliting the message message
-    
+    print(raw_data)
     teensy_time = int(raw_data[0][1:])              # time in ms since teensy power on
     acceleration = float(raw_data[1]) - 9.80665     # float in [m/s^2] --> when Hopper at rest, it shows + 9.80665 m/s^2
     position = float(raw_data[2])                   # float in [m]
@@ -64,6 +64,9 @@ while True:
     
     action = control_law(.....) # action must be a 12 bit signal
     '''   
+
+    # TEST CONTROL LAW
+    action = 0
 
     # control input which is going to be sent to teensy
     action = f'<1:{action}>'
@@ -76,10 +79,10 @@ while True:
     ser.write(action.encode())
    
     # stop the control event once, control duration is reached
-    if time.time() - main_timer < control_duration:
+    if time.time() - main_timer > control_duration:
         break
 
-ser.write('<1:1000>'.encode())  # reduce thrust to decrease altitude
+# ser.write('<1:1000>'.encode())  # reduce thrust to decrease altitude
 time.sleep(1)
 
 ser.write('<1:0>'.encode())  # shut off valve
