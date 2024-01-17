@@ -19,7 +19,7 @@ class HopperEnv(Env):
         # Actions we can take: set pressure between 0 and 7 bar
         self.action_space = Box(low=0.0, high=7.0, shape=(1,), dtype=np.float32) # pressure
         # Altitude range
-        self.observation_space = Box(low=np.array([0.,5., -0.1]), high=np.array([0.,5., 0.1]), shape=(3,)) # [x_target,x,a]
+        self.observation_space = Box(low=np.array([0.,5., -0.1,0.]), high=np.array([0.,5., 0.1,7.]), shape=(4,)) # [x_target,x,a,p_actual]
         # Set simulation time
         self.sim_time = 5 # [s] total sim time
         self.tn = 1/60    # [s] step sim time
@@ -37,12 +37,12 @@ class HopperEnv(Env):
 
         # Set start altitude and velocity
         self.y = np.array([0.,0.])
-        self.state = np.array([self.x_target,0.,0.])
+        self.state = np.array([self.x_target,0.,0.,0.])
 
 
     def reset(self):
         # Reset all variables
-        self.state = np.array([self.x_target,0,0])
+        self.state = np.array([self.x_target,0.,0.,0.])
         self.y = np.array([0.,0.])
         self.p_actual = 0
         
@@ -69,7 +69,7 @@ class HopperEnv(Env):
         y = self.sim_step(self.y,self.p_actual)
         self.y = y[:-1]
 
-        self.state = np.array([self.x_target,y[0],y[2]]) # craft [x_target,x,a]
+        self.state = np.array([self.x_target,y[0],y[2],self.p_actual]) # craft [x_target,x,a,p_actual]
         
         # Reduce sim_time by a step
         self.sim_time -= self.tn
