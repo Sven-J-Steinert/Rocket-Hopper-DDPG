@@ -375,6 +375,13 @@ def train(logging = False):
     # Train the agent for the number of episodes set:
     
     for i in range(MAX_EPISODE):
+        # prune runs without minimum reward at 50 Episodes
+        if i == 50:
+            avg_reward = np.mean(score_hist[-10:])
+            if avg_reward < 10:
+                print('PRUUUUNED!')
+                break
+        
         start_time = time.time()
         
         total_reward = 0
@@ -384,6 +391,7 @@ def train(logging = False):
         log = np.zeros((8,MAX_TIME_STEPS))
         
         start_time = time.time()
+        
         for t in range(MAX_TIME_STEPS):
             
             action = agent.select_action(state) # range [-1..1]
