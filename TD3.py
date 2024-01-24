@@ -511,6 +511,8 @@ def run(params, final=False):
     if final:
         agent.save()
         logs = test(agent,logging=True)
+        if not os.path.exists('./img/test/'):
+            os.makedirs('./img/test/')
         for i in range(10):
             plot_doc(logs[random.randint(0, len(logs)-1)],f'img/test/{i}.png',silent=True)
         print('agent saved.')
