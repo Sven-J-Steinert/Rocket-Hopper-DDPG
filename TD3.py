@@ -145,8 +145,7 @@ class Actor(nn.Module):
             nn.Linear(H1, H1), 
             nn.ReLU(), 
             nn.Linear(H1, action_dim),
-            nn.Tanh()   # XXX test
-            # TODO: Test if final tanh is better
+            nn.Tanh() 
         )
         
     def forward(self, state):
@@ -172,7 +171,8 @@ class Critic(nn.Module):
             nn.ReLU(), 
             nn.Linear(H2, H2), 
             nn.ReLU(), 
-            nn.Linear(H2, action_dim)
+            nn.Linear(H2, action_dim),
+            nn.Tanh()
         )
 
         self.q2 = nn.Sequential(
@@ -182,7 +182,8 @@ class Critic(nn.Module):
             nn.ReLU(), 
             nn.Linear(H2, H2), 
             nn.ReLU(), 
-            nn.Linear(H2, action_dim)
+            nn.Linear(H2, action_dim),
+            nn.Tanh()
         )
 
     def forward(self, state, action):
@@ -385,7 +386,7 @@ def train(logging = False):
         start_time = time.time()
         for t in range(MAX_TIME_STEPS):
             
-            action = agent.select_action(state) # range ? [-1..1] (?)
+            action = agent.select_action(state) # range [-1..1]
             action = map(action, -1, 1, min_action, max_action) # [0..7]
             
             # # Add Gaussian noise to actions for exploration
@@ -430,8 +431,6 @@ def train(logging = False):
         sim_time = time.time()
         
         agent.update()
-        if i % 100 == 0:
-            agent.save()
     
         end_time = time.time()
         print(f"Episode: {i} | Total Reward: {total_reward:5.2f} | Simulation {1000*(sim_time-start_time):4.2f} ms | Agend update {1000*(end_time-start_time):4.2f} ms ", end='\r', flush=True)
