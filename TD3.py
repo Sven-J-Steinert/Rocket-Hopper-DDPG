@@ -513,7 +513,7 @@ def run(params, final=False):
         agent.save()
         logs = test(agent,logging=True)
         for i in range(10):
-            plot_doc(logs[random.randint(0, len(logs)-1)],f'img/test/{i}.pdf',silent=True)
+            plot_doc(logs[random.randint(0, len(logs)-1)],f'img/test/{i}.png',silent=True)
         print('agent saved.')
         
     return accuary
