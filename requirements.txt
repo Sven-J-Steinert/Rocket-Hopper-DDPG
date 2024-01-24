@@ -1,0 +1,6 @@
+optuna
+gym
+numpy
+torch
+tqdm
+matplotlib

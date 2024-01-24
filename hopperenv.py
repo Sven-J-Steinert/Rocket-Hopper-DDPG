@@ -2,7 +2,7 @@ from gym import Env
 from gym.spaces import Discrete, Box
 import numpy as np
 import random
-import CoolProp.CoolProp as CP
+#import CoolProp.CoolProp as CP
 
 # some global variables
 g0 = 9.80665
