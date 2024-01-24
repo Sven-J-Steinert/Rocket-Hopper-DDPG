@@ -34,8 +34,8 @@ gamma=0.99      # ?
 directory = './'
 
 # Neural Network architecture:
-H1=256     #32  # Neuron of 1st Layers #400 #20 # 64
-H2=H1     #H1*2  # Neurons of 2nd layers #300 #64 # 128
+H1=16     #32  # Neuron of 1st Layers #400 #20 # 64
+H2=27     #H1*2  # Neurons of 2nd layers #300 #64 # 128
 
 # TD3 Agent Parameters:
 learning_rate_actor = 0.00024188
@@ -324,12 +324,16 @@ class TD3(object):
             torch.save(self.critic.state_dict(), directory + f'critic_{filename}.pth')
         
 
-    def load(self):
+    def load(self,filename=None):
         """
         Loads the state dictionaries of the actor and critic networks to files
         """
-        self.actor.load_state_dict(torch.load(directory + 'actor.pth'))
-        self.critic.load_state_dict(torch.load(directory + 'critic.pth'))
+        if filename is None:
+            self.actor.load_state_dict(torch.load(directory + 'actor.pth'))
+            self.critic.load_state_dict(torch.load(directory + 'critic.pth'))
+        else:
+            self.actor.load_state_dict(torch.load(directory + f'actor_{filename}.pth'))
+            self.critic.load_state_dict(torch.load(directory + f'critic_{filename}.pth'))
        
 ## INITIALIZE TD3 INSTANCE ================================================##
 env = HopperEnv()
