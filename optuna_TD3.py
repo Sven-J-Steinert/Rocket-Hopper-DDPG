@@ -10,7 +10,8 @@ import optuna
 import torch
 import torch.nn as nn
 
-
+from optuna.pruners import BasePruner
+from optuna.trial._state import TrialState
 
 DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -85,14 +86,30 @@ def objective(trial):
         'batch_size': batch_size
     }
 
-    accuary = run(hyperparameters)
+    accuracy = run(hyperparameters)
 
-    return accuary
+    # Handle pruning based on the intermediate value.    
+    if trial.should_prune():
+        raise optuna.exceptions.TrialPruned()
+    
+    return accuracy
 
 
 if __name__ == "__main__":
-    study = optuna.create_study(direction='maximize',storage="sqlite:///db.sqlite3")  # or 'maximize' depending on your metric
+    study = optuna.create_study(
+        direction='maximize',
+        storage="sqlite:///db.sqlite3"
+        )
     study.optimize(objective, n_trials=1)  # You can adjust the number of trials
+
+
+    pruned_trials = study.get_trials(states=(optuna.trial.TrialState.PRUNED,))
+    complete_trials = study.get_trials(states=(optuna.trial.TrialState.COMPLETE,))
+
+    print("Study statistics: ")
+    print("  Number of finished trials: ", len(study.trials))
+    print("  Number of pruned trials: ", len(pruned_trials))
+    print("  Number of complete trials: ", len(complete_trials))
 
     # Print the best hyperparameters
     print('Best hyperparameters:', study.best_params)
