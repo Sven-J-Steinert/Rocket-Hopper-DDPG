@@ -2,6 +2,25 @@
 import serial  # Library for serial communication with python - install command: pip install pyserial
 import time  # time tracking library
 import serial.tools.list_ports
+from TD3 import *
+from datetime import datetime
+
+from tqdm import tqdm
+import random
+
+# create logging file
+now = datetime.now()
+timestamp = now.strftime("%Y_%m_%d_-_%H_%M_%S")
+filename = f"logs_{timestamp}.txt"
+
+with open(filename, 'w') as file:
+    file.write(f"loop_timer,x_target,teensy_time,acceleration,position,pressure\n")
+
+# Function to log data to a text file
+def log_data(loop_timer, x_target, teensy_time, acceleration, position, pressure):
+    timestamp = time.time()  # Use current time as a timestamp
+    with open(filename, 'a') as file:
+        file.write(f"{loop_timer},{x_target},{teensy_time},{acceleration},{position},{pressure}\n")
 
 
 # teensy loop time
@@ -42,10 +61,20 @@ ser.write(b'n') # don't change this
 # f = failure
 ser.write(b'F') # don't change this
 
+# init agent
+agent = TD3(state_dim=4, action_dim=1)
+agent.load('141') # in same folder as this script
+print(agent)
+
+# dewfine target height
+x_target = 2
 
 # -------------------------------------------------------------------------
 ### main loop
 main_timer = time.time()                            # control timer --> duration of entire control event / flight duration
+
+# logging
+#loop_timer, teensy_time, acceleration, position, pressure
 
 while True:
     loop_timer = time.time()                        # loop timer --> the time it takes for one control loop is either equivalnt to the loop_cycle_time or slower
@@ -61,12 +90,21 @@ while True:
     
     '''
     INSERT YOUR CONTROL LAW HERE
-    
-    action = control_law(.....) # action must be a 12 bit signal
-    '''   
+    '''
 
-    # TEST CONTROL LAW
-    action = 0
+    # compensate 11cm offset on ground
+    position = max(0, position-0.11)
+
+    state = np.array([x_target,position,acceleration,pressure]) # [x_target, x, a, p_actual]
+    action = agent.select_action(state)
+    action = map(action, -1, 1, 0, 4095)
+    action = int(action)
+
+    log_data(loop_timer,x_target,teensy_time,acceleration,position,pressure)
+
+    '''
+    INSERT YOUR CONTROL LAW HERE
+    '''
 
     # control input which is going to be sent to teensy
     action = f'<1:{action}>'
