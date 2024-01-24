@@ -199,7 +199,7 @@ print("Job will run on {}".format(device))
 
 
 ## TD3 AGENT ===============================================================##
-class DDPG(object):
+class TD3(object):
     def __init__(self, state_dim, action_dim):
         """
         Initializes the DDPG agent. 
@@ -361,7 +361,7 @@ def train(logging = False):
     
     # Create a DDPG instance
     global agent
-    agent = DDPG(state_dim, action_dim)
+    agent = TD3(state_dim, action_dim)
     #print("State dim: {}, Action dim: {}".format(state_dim, action_dim))
 
     env.reset()
@@ -443,6 +443,7 @@ def train(logging = False):
         return agent
 
 def test(agent,logging=False):
+    print()
 
     all_test_reward = 0
     test_iteration=100
@@ -462,7 +463,7 @@ def test(agent,logging=False):
             action = agent.select_action(state)
             action = map(action, -1, 1, min_action, max_action)
             y, reward, done, info = env.step(action)
-            print(len(y))
+            #print(len(y))
             
             if logging:
                 
@@ -491,7 +492,29 @@ def test(agent,logging=False):
         return logs
     else:
         return score    
+
+# runs the training with given hyperparameters and returns score of test
+def run(params, final=False):
+    # update global hyperparameters
+    global BUFFER_SIZE, BATCH_SIZE, UPDATE_ITERATION, tau, gamma, H1, H2, learning_rate_actor, learning_rate_critic, policy_freq
+
+    H1 = params['actor_neurons']
+    H2 = params['critic_neurons']
+    learning_rate_actor = params['lr_actor']
+    learning_rate_critic = params['lr_critic']
+    tau = params['tau']
+    gamma = params['gamma']
+    batch_size = params['batch_size']
     
-agent, log, score_hist = train(logging=True)
-plot_learning_curve(range(len(score_hist)), score_hist)
-logs = test(agent,logging=True)
+    agent = train()
+    accuary = test(agent)
+    
+    if final:
+        agent.save()
+        logs = test(agent,logging=True)
+        for i in range(10):
+            plot_doc(logs[random.randint(0, len(logs)-1)],f'img/test/{i}.pdf',silent=True)
+        print('agent saved.')
+        
+    return accuary
+    

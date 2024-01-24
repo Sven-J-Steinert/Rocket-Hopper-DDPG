@@ -27,7 +27,7 @@ def plot(states):
     plt.tight_layout()
     plt.show()
 
-def plot_doc(states,filename):
+def plot_doc(states,filename,silent=False):
     # plot 
     # position, with target and error
     # p_set, p_actual
@@ -66,4 +66,5 @@ def plot_doc(states,filename):
     plt.legend(loc='lower right')
     plt.tight_layout()
     plt.savefig(filename, bbox_inches='tight')
-    plt.show()
+    if not silent:
+        plt.show()
