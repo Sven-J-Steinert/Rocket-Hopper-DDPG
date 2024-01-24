@@ -43,7 +43,7 @@ learning_rate_critic = 0.0001
 policy_freq = 2                 # Frequency of delayed policy updates
 
 # Agent Training Parameters:
-MAX_EPISODE=250   # Number of episodes 200
+MAX_EPISODE=50   # Number of episodes 200
 ep_r = 0          # Initial episode reward: normally 0 or -infinity
 
 ## EXPLORATION NOISE ======================================================##
@@ -214,7 +214,7 @@ class TD3(object):
         counters to track the number of training iterations.
         """
         self.replay_buffer = Replay_buffer()
-        print(f"learning rates: actor {learning_rate_actor} | critic {learning_rate_critic}")
+        #print(f"learning rates: actor {learning_rate_actor} | critic {learning_rate_critic}")
         
         self.actor = Actor(state_dim, action_dim, H1).to(device)
         self.actor_target = Actor(state_dim, action_dim,  H1).to(device)
@@ -312,12 +312,16 @@ class TD3(object):
             self.num_actor_update_iteration += 1
             self.num_critic_update_iteration += 1
             
-    def save(self):
+    def save(self,filename=None):
         """
         Saves the state dictionaries of the actor and critic networks to files
         """
-        torch.save(self.actor.state_dict(), directory + 'actor.pth')
-        torch.save(self.critic.state_dict(), directory + 'critic.pth')
+        if filename is None:
+            torch.save(self.actor.state_dict(), directory + 'actor.pth')
+            torch.save(self.critic.state_dict(), directory + 'critic.pth')
+        else:
+            torch.save(self.actor.state_dict(), directory + f'actor_{filename}.pth')
+            torch.save(self.critic.state_dict(), directory + f'critic_{filename}.pth')
         
 
     def load(self):
@@ -371,15 +375,24 @@ def train(logging = False):
     episodes = []
     best_episode = {'index':None,'value':0}
     score_hist = [] # Initialize the list where all historical rewards of each episode are stored
+    prune = False
     
     # Train the agent for the number of episodes set:
     
     for i in range(MAX_EPISODE):
         # prune runs without minimum reward at 50 Episodes
-        if i == 50:
+        if i == 25:
             avg_reward = np.mean(score_hist[-10:])
             if avg_reward < 10:
-                print('PRUUUUNED!')
+                print('PRUUUUNED! ')
+                prune = True
+                break
+
+        if i == 45:
+            avg_reward = np.mean(score_hist[-10:])
+            if avg_reward < 50:
+                print('PRUUUUNED! ')
+                prune = True
                 break
         
         start_time = time.time()
@@ -447,7 +460,7 @@ def train(logging = False):
     if logging:
         return (agent,log,score_hist)
     else:
-        return agent
+        return (agent, prune)
 
 def test(agent,logging=False):
     print()
@@ -492,6 +505,10 @@ def test(agent,logging=False):
         logs.append(log)
             
     score = all_test_reward/test_iteration
+    if score > 100:
+        print('exceptional :)')
+        agent.save(int(score))
+        
     print(f'final test score: {score:0.2f}                                                                        ')
     
     env.close()
@@ -513,8 +530,11 @@ def run(params, final=False):
     gamma = params['gamma']
     batch_size = params['batch_size']
     
-    agent = train()
-    accuary = test(agent)
+    agent, prune = train()
+    if not prune:
+        accuracy = test(agent)
+    else:
+        accuracy = 0
     
     if final:
         agent.save()
@@ -525,5 +545,4 @@ def run(params, final=False):
             plot_doc(logs[random.randint(0, len(logs)-1)],f'img/test/{i}.png',silent=True)
         print('agent saved.')
         
-    return accuary
-    
+    return accuracy

@@ -43,23 +43,30 @@ Max episodes
 def objective(trial):
     # Number of layers and units per layer for actor
     #actor_layers = trial.suggest_int('actor_layers', 1, 4)
-    actor_neurons = trial.suggest_int('actor_neurons', 4, 512, log=True)
+    #actor_neurons = trial.suggest_int('actor_neurons', 16, 17)
+    actor_neurons = 16 
     # Number of layers and units per layer for critic
     #critic_layers = trial.suggest_int('critic_layers', 1, 4)
-    critic_neurons = trial.suggest_int('critic_neurons', 4, 512, log=True)
+    #critic_neurons = trial.suggest_int('critic_neurons', 27, 28)
+    critic_neurons = 27
     # Activation function
     #activation_fn = trial.suggest_categorical('activation_fn', ['relu', 'tanh'])
     #activation_fn = {'relu': nn.ReLU, 'tanh': nn.Tanh}[activation_fn]
     # Learning rates
-    lr_actor = trial.suggest_float('lr_actor', 1e-5, 1e-1,log=True)
-    lr_critic = trial.suggest_float('lr_critic', 1e-5, 1e-1,log=True)
+    #lr_actor = trial.suggest_float('lr_actor', 0.000864, 0.000865)
+    lr_actor = 0.000864794563198381
+    #lr_critic = trial.suggest_float('lr_critic', 0.034, 0.035)
+    lr_critic = 0.03483898941754678
     
     # Target network
-    tau = trial.suggest_float('tau', 1e-3, 1e-1,log=True)
-    gamma = trial.suggest_float('gamma', 0.9, 0.99,log=True)
+    #tau = trial.suggest_float('tau', 0.0066, 0.0067)
+    tau = 0.006630440582359434
+    #gamma = trial.suggest_float('gamma', 0.98671, 0.98672)
+    gamma = 0.9867119778308003
 
     # Batch size
-    batch_size = trial.suggest_int('batch_size', 32, 256, log=True)
+    #batch_size = trial.suggest_int('batch_size', 40, 45)
+    batch_size = 42
     
     '''
     hyperparameters = {
@@ -100,7 +107,7 @@ if __name__ == "__main__":
         direction='maximize',
         storage="sqlite:///db.sqlite3"
         )
-    study.optimize(objective, n_trials=1)  # You can adjust the number of trials
+    study.optimize(objective, n_trials=1_000_000)  # You can adjust the number of trials
 
 
     pruned_trials = study.get_trials(states=(optuna.trial.TrialState.PRUNED,))
@@ -112,10 +119,10 @@ if __name__ == "__main__":
     print("  Number of complete trials: ", len(complete_trials))
 
     # Print the best hyperparameters
-    print('Best hyperparameters:', study.best_params)
+    #print('Best hyperparameters:', study.best_params)
 
     # Retrieve the best hyperparameters
-    best_hyperparams = study.best_params
+    #best_hyperparams = study.best_params
 
     # Create an instance of your TD3 model with the best hyperparameters
-    run(best_hyperparams, final=True)
+    #run(best_hyperparams, final=True)
