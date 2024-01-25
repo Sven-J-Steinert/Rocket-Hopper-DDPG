@@ -24,7 +24,7 @@ def log_data(counter,loop_timer, x_target, teensy_time, acceleration, position, 
 
 
 # teensy loop time
-loop_cycle_time = 1/60 # 60 measurement aquistions per second; can be adjusted to max of 66Hz
+loop_cycle_time = 1/33 # 60 measurement aquistions per second; can be adjusted to max of 66Hz
 control_duration = 11 # in [s] --> your anticipated flight duration / control event duration
 
 ### establishing serial connection
@@ -64,7 +64,7 @@ ser.write(b'F') # don't change this
 # init agent
 agent = TD3(state_dim=4, action_dim=1)
 agent.load('142') # in same folder as this script
-print(agent)
+# print(agent)
 
 # define target height
 x_target = 2
@@ -78,12 +78,25 @@ main_timer = time.time()                            # control timer --> duration
 
 # logging
 #loop_timer, teensy_time, acceleration, position, pressure
+action = 0
+
+# control input which is going to be sent to teensy
+action = f'<1:{action}>'
 
 while True:
+    START = time.time()
+    # send control input / action to teensy
+    ser.write(action.encode())
+    
+
+
+
+
     loop_timer = time.time()                        # loop timer --> the time it takes for one control loop is either equivalnt to the loop_cycle_time or slower
     
     # signal coming from teensy
     raw_data = ser.readline().decode().strip()   # reading the data comming from the teensy, decoding the data and removing white spaces
+    ser.flush()
     raw_data = raw_data.split(':')                  # spliting the message message
     print(raw_data)
     teensy_time = int(raw_data[0][1:])              # time in ms since teensy power on
@@ -95,15 +108,16 @@ while True:
     INSERT YOUR CONTROL LAW HERE
     '''
 
-    # compensate 11cm offset on ground
-    position = max(0, position-0.11)
-    # gradually decrease the x_target to zero
-    if counter >= 300:
-        x_target = max(0,x_target - (2/300))
-    state = np.array([x_target,position,acceleration,pressure]) # [x_target, x, a, p_actual]
-    action = agent.select_action(state)
-    action = map(action, -1, 1, 0, 4095)
-    action = int(action)
+    # # compensate 11cm offset on ground
+    # position = max(0, position-0.11)
+    # # gradually decrease the x_target to zero
+    # if counter >= 300:
+    #     x_target = max(0,x_target - (2/300))
+    # state = np.array([x_target,position,acceleration,pressure]) # [x_target, x, a, p_actual]
+    # action = agent.select_action(state)
+    # action = map(action, -1, 1, 0, 4095)
+    # action = int(action)
+    action = 0
 
     log_data(counter,loop_timer,x_target,teensy_time,acceleration,position,pressure)
 
@@ -122,18 +136,28 @@ while True:
     # send control input / action to teensy
     ser.write(action.encode())
    
+    END = time.time()
+    total_time= END - START
+    print(total_time)
+    
     # stop the control event once, control duration is reached
     if time.time() - main_timer > control_duration:
         break
 
 # ser.write('<1:1000>'.encode())  # reduce thrust to decrease altitude
-time.sleep(1)
+# time.sleep(1)
 
 ser.write('<1:0>'.encode())  # shut off valve
 time.sleep(0.1)
 ser.write('<1:0>'.encode())  # shut off valve
 time.sleep(0.1)
 ser.write('<1:0>'.encode())  # shut off valve
+
+
+# resetting error status
+ser.write(b'0')
+
 
 # close serial connection
 ser.close()
+
