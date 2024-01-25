@@ -81,31 +81,19 @@ class HopperEnv(Env):
         sigma = 0.5 # variance - gauss parameter
         reward = scale*(1/(sigma*np.sqrt(2*np.pi))* np.exp(-0.5*((error)/(sigma))**2)) # small error gauss
 
-        
-        #scale = 0.8
-        #sigma = 0.25 # variance - gauss parameter
-        #reward += scale*(1/(sigma*np.sqrt(2*np.pi))* np.exp(-0.5*((error)/(sigma))**2)) # reward small error greatly gauss
+        # boundary penalty
+        #if y[0] >= 5 or y[0] <= 0:
+        #    reward -= 0.5
 
-        #penalize constant
-        #if raw is None:
-        #    raw = action
-        #if abs(self.action_old - raw) == 0:
-        #    reward -= 10
-        #self.action_old = raw
-        
-        #if error > 0:
-        #    reward = reward * 0.5
-        
-        #reward = reward * (1 + scale*(1/(sigma*np.sqrt(2*np.pi))* np.exp(-0.5*((y[2])/(sigma))**2))) # small velocity gauss
-        
-        
-        #if p_set == self.p_set_old and abs(y[0] - self.x_old) > 0.001:
-        #    reward -= self.counter * 0.005
-        #    self.counter += 1
-        #else:
-        #    self.counter = 0
+        # Penalty for valve actuation
+        #reward -= 0.1 * abs(action - self.last_action) / self.h
+        #self.last_action = action
 
-        
+        # Penalty for high velocities
+        #self.penalty3[self.step2] = - 0.1 * abs(v)
+
+        # Penalty for high accelerations
+        #self.penalty4[self.step2] = 0
         
         # penalize fast change in p_set
         #if abs(self.p_set_old - p_set) > 0.5:

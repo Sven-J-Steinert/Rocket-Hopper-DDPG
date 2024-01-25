@@ -35,7 +35,7 @@ def plot_doc(states,filename,silent=False):
     num_states = states.shape[0]
     time = np.arange(states.shape[1])
 
-    plt.figure(figsize=(4, 4))
+    plt.figure(figsize=(4, 4),dpi=300)
 
     names = ["position [m]","velocity [m/s]","acceleration [m/s²]","p_set [bar]","p_actual [bar]","x_target [m]","error [m]","reward","?"]
     colors = ["tab:blue","tab:orange","tab:purple","tab:green","tab:green","tab:grey","tab:red","tab:cyan","black"]
@@ -68,3 +68,4 @@ def plot_doc(states,filename,silent=False):
     plt.savefig(filename, bbox_inches='tight')
     if not silent:
         plt.show()
+    plt.close()
