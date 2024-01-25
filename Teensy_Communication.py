@@ -14,18 +14,18 @@ timestamp = now.strftime("%Y_%m_%d_-_%H_%M_%S")
 filename = f"logs_{timestamp}.txt"
 
 with open(filename, 'w') as file:
-    file.write(f"loop_timer,x_target,teensy_time,acceleration,position,pressure\n")
+    file.write(f"counter,loop_timer,x_target,teensy_time,acceleration,position,pressure\n")
 
 # Function to log data to a text file
-def log_data(loop_timer, x_target, teensy_time, acceleration, position, pressure):
+def log_data(counter,loop_timer, x_target, teensy_time, acceleration, position, pressure):
     timestamp = time.time()  # Use current time as a timestamp
     with open(filename, 'a') as file:
-        file.write(f"{loop_timer},{x_target},{teensy_time},{acceleration},{position},{pressure}\n")
+        file.write(f"{counter},{loop_timer},{x_target},{teensy_time},{acceleration},{position},{pressure}\n")
 
 
 # teensy loop time
 loop_cycle_time = 1/60 # 60 measurement aquistions per second; can be adjusted to max of 66Hz
-control_duration = 10 # in [s] --> your anticipated flight duration / control event duration
+control_duration = 11 # in [s] --> your anticipated flight duration / control event duration
 
 ### establishing serial connection
 # you need to figure out the serial port ID of your laptop; it might be different from the predefined
@@ -63,11 +63,14 @@ ser.write(b'F') # don't change this
 
 # init agent
 agent = TD3(state_dim=4, action_dim=1)
-agent.load('141') # in same folder as this script
+agent.load('142') # in same folder as this script
 print(agent)
 
-# dewfine target height
+# define target height
 x_target = 2
+
+# define step counter
+counter = 0
 
 # -------------------------------------------------------------------------
 ### main loop
@@ -94,13 +97,15 @@ while True:
 
     # compensate 11cm offset on ground
     position = max(0, position-0.11)
-
+    # gradually decrease the x_target to zero
+    if counter >= 300:
+        x_target = max(0,x_target - (2/300))
     state = np.array([x_target,position,acceleration,pressure]) # [x_target, x, a, p_actual]
     action = agent.select_action(state)
     action = map(action, -1, 1, 0, 4095)
     action = int(action)
 
-    log_data(loop_timer,x_target,teensy_time,acceleration,position,pressure)
+    log_data(counter,loop_timer,x_target,teensy_time,acceleration,position,pressure)
 
     '''
     INSERT YOUR CONTROL LAW HERE
@@ -111,6 +116,7 @@ while True:
     
     # wait until loop time has passed
     while time.time() - loop_timer < loop_cycle_time:
+        counter += 1
         continue
     
     # send control input / action to teensy

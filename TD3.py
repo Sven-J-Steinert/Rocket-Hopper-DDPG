@@ -312,11 +312,11 @@ class TD3(object):
             self.num_actor_update_iteration += 1
             self.num_critic_update_iteration += 1
             
-    def save(self,filename=None):
+    def save(self,filename=None,folder=None):
         """
         Saves the state dictionaries of the actor and critic networks to files
         """
-        if filename is None:
+        if filename is None and folder is None:
             torch.save(self.actor.state_dict(), directory + 'actor.pth')
             torch.save(self.critic.state_dict(), directory + 'critic.pth')
         else:
@@ -324,16 +324,19 @@ class TD3(object):
             torch.save(self.critic.state_dict(), directory + f'critic_{filename}.pth')
         
 
-    def load(self,filename=None):
+    def load(self,filename=None,folder=None):
         """
         Loads the state dictionaries of the actor and critic networks to files
         """
-        if filename is None:
+        if filename is None and folder is None:
             self.actor.load_state_dict(torch.load(directory + 'actor.pth'))
             self.critic.load_state_dict(torch.load(directory + 'critic.pth'))
-        else:
+        elif folder is None:
             self.actor.load_state_dict(torch.load(directory + f'actor_{filename}.pth'))
             self.critic.load_state_dict(torch.load(directory + f'critic_{filename}.pth'))
+        else:
+            self.actor.load_state_dict(torch.load(directory + f'agents/{folder}/actor_{filename}.pth'))
+            self.critic.load_state_dict(torch.load(directory + f'agents/{folder}/critic_{filename}.pth'))
        
 ## INITIALIZE TD3 INSTANCE ================================================##
 env = HopperEnv()
@@ -366,11 +369,14 @@ def plot_learning_curve(x, scores):
     #plt.savefig(figure_file)
     plt.show()
 
-def train(logging = False):
+def train(logging = False,file=False):
     
     # Create a DDPG instance
     global agent
     agent = TD3(state_dim, action_dim)
+    if file:
+        agent.load('142','base') # in same folder as this script
+    
     #print("State dim: {}, Action dim: {}".format(state_dim, action_dim))
 
     env.reset()
@@ -387,14 +393,14 @@ def train(logging = False):
         # prune runs without minimum reward at 50 Episodes
         if i == 25:
             avg_reward = np.mean(score_hist[-10:])
-            if avg_reward < 10:
+            if avg_reward < 80:
                 print('PRUUUUNED! ')
                 prune = True
                 break
 
         if i == 45:
             avg_reward = np.mean(score_hist[-10:])
-            if avg_reward < 50:
+            if avg_reward < 100:
                 print('PRUUUUNED! ')
                 prune = True
                 break
@@ -509,9 +515,9 @@ def test(agent,logging=False):
         logs.append(log)
             
     score = all_test_reward/test_iteration
-    if score > 100:
+    if score > 142:
         print('exceptional :)')
-        agent.save(int(score))
+        agent.save(f'{int(score)}_{int((score-int(score))*10)}')
         
     print(f'final test score: {score:0.2f}                                                                        ')
     
@@ -534,7 +540,7 @@ def run(params, final=False):
     gamma = params['gamma']
     batch_size = params['batch_size']
     
-    agent, prune = train()
+    agent, prune = train(file=True)
     if not prune:
         accuracy = test(agent)
     else:
