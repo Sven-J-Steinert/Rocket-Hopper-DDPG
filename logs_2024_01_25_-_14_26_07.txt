@@ -1,2 +1,0 @@
-counter,loop_timer,x_target,teensy_time,acceleration,position,pressure
-
